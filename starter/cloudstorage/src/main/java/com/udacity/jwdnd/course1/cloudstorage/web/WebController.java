@@ -1,8 +1,10 @@
 package com.udacity.jwdnd.course1.cloudstorage.web;
 
+import com.udacity.jwdnd.course1.cloudstorage.models.Credential;
 import com.udacity.jwdnd.course1.cloudstorage.models.File;
 import com.udacity.jwdnd.course1.cloudstorage.models.Note;
 import com.udacity.jwdnd.course1.cloudstorage.models.User;
+import com.udacity.jwdnd.course1.cloudstorage.services.CredentialService;
 import com.udacity.jwdnd.course1.cloudstorage.services.FileService;
 import com.udacity.jwdnd.course1.cloudstorage.services.NoteService;
 import com.udacity.jwdnd.course1.cloudstorage.services.UserService;
@@ -25,11 +27,13 @@ public class WebController {
     private final UserService userService;
     private final FileService fileService;
     private final NoteService noteService;
+    private final CredentialService credentialService;
 
-    public WebController(UserService userService, FileService fileService, NoteService noteService) {
+    public WebController(UserService userService, FileService fileService, NoteService noteService, CredentialService credentialService) {
         this.userService = userService;
         this.fileService = fileService;
         this.noteService = noteService;
+        this.credentialService = credentialService;
     }
 
     @GetMapping("")
@@ -63,9 +67,11 @@ public class WebController {
         var userId = getUserId(auth);
         var files = fileService.findByUserId(userId);
         var notes = noteService.findByUserId(userId);
+        var creds = credentialService.findByUserId(userId);
 
         model.addAttribute("files", files);
         model.addAttribute("notes", notes);
+        model.addAttribute("creds", creds);
         return "home";
     }
 
@@ -111,6 +117,21 @@ public class WebController {
     public String deleteNote(@PathVariable int id) {
         noteService.delete(id);
         return "redirect:/home";
+    }
+
+    @PostMapping("credential")
+    public String saveCredential(@ModelAttribute Credential credential, Authentication auth, Model model) {
+        try {
+            if (credential.getCredentialid() == 0) {
+                credential.setUserid(getUserId(auth));
+                credentialService.insert(credential);
+            } else {
+                credentialService.update(credential);
+            }
+        } catch (Exception e) {
+            model.addAttribute("err", e.getMessage());
+        }
+        return "result";
     }
 
     private int getUserId(Authentication auth) {
