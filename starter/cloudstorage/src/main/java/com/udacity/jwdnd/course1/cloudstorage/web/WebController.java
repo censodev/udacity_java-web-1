@@ -1,8 +1,10 @@
 package com.udacity.jwdnd.course1.cloudstorage.web;
 
 import com.udacity.jwdnd.course1.cloudstorage.models.File;
+import com.udacity.jwdnd.course1.cloudstorage.models.Note;
 import com.udacity.jwdnd.course1.cloudstorage.models.User;
 import com.udacity.jwdnd.course1.cloudstorage.services.FileService;
+import com.udacity.jwdnd.course1.cloudstorage.services.NoteService;
 import com.udacity.jwdnd.course1.cloudstorage.services.UserService;
 import org.springframework.core.io.Resource;
 import org.springframework.security.core.Authentication;
@@ -22,10 +24,12 @@ import java.io.IOException;
 public class WebController {
     private final UserService userService;
     private final FileService fileService;
+    private final NoteService noteService;
 
-    public WebController(UserService userService, FileService fileService) {
+    public WebController(UserService userService, FileService fileService, NoteService noteService) {
         this.userService = userService;
         this.fileService = fileService;
+        this.noteService = noteService;
     }
 
     @GetMapping("")
@@ -56,10 +60,12 @@ public class WebController {
 
     @GetMapping("home")
     public String home(Authentication auth, Model model) {
-        var userId = ((User) auth.getPrincipal()).getUserid();
+        var userId = getUserId(auth);
         var files = fileService.findByUserId(userId);
+        var notes = noteService.findByUserId(userId);
 
         model.addAttribute("files", files);
+        model.addAttribute("notes", notes);
         return "home";
     }
 
@@ -69,7 +75,7 @@ public class WebController {
         metadata.setFilename(fileUpload.getOriginalFilename());
         metadata.setContenttype(fileUpload.getContentType());
         metadata.setFilesize(String.valueOf(fileUpload.getSize()));
-        metadata.setUserid(((User) auth.getPrincipal()).getUserid());
+        metadata.setUserid(getUserId(auth));
         fileService.save(fileUpload.getInputStream(), metadata);
         return "redirect:/home";
     }
@@ -84,5 +90,26 @@ public class WebController {
     public String deleteFile(@PathVariable int id) {
         fileService.delete(id);
         return "redirect:/home";
+    }
+
+    @PostMapping("note")
+    public String saveNote(@ModelAttribute Note note, Authentication auth, Model model) {
+        try {
+            note.setUserid(getUserId(auth));
+            noteService.save(note);
+        } catch (Exception e) {
+            model.addAttribute("err", e.getMessage());
+        }
+        return "result";
+    }
+
+    @GetMapping("note/delete/{id}")
+    public String deleteNote(@PathVariable int id) {
+        noteService.delete(id);
+        return "redirect:/home";
+    }
+
+    private int getUserId(Authentication auth) {
+        return ((User) auth.getPrincipal()).getUserid();
     }
 }
