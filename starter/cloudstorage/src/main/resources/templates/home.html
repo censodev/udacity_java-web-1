@@ -77,7 +77,7 @@
                                 <tbody>
                                     <tr th:each="note: ${notes}">
                                         <td>
-                                            <button type="button" class="btn btn-success">Edit</button>
+                                            <button th:attr="onclick=|showNoteModal('${note.noteid}', '${note.notetitle}', '${note.notedescription}')|" type="button" class="btn btn-success">Edit</button>
                                             <a th:href="@{|/note/delete/${note.noteid}|}" class="btn btn-danger">Delete</a>
                                         </td>
                                         <th scope="row" th:text="${note.notetitle}"></th>
@@ -98,7 +98,7 @@
                                     </div>
                                     <div class="modal-body">
                                         <form th:action="@{/note}" th:object="${note}" action="#" method="POST">
-                                            <input type="hidden" name="noteId" id="note-id">
+                                            <input type="hidden" name="noteid" id="note-id">
                                             <div class="form-group">
                                                 <label for="note-title" class="col-form-label">Title</label>
                                                 <input type="text" name= "notetitle" class="form-control" id="note-title" maxlength="20" required>
@@ -194,7 +194,7 @@
         <script type="text/javascript">
             // For opening the note modal
             function showNoteModal(noteId, noteTitle, noteDescription) {
-                $('#note-id').val(noteId ? noteId : '');
+                $('#note-id').val(noteId ? noteId : '0');
                 $('#note-title').val(noteTitle ? noteTitle : '');
                 $('#note-description').val(noteDescription ? noteDescription : '');
                 $('#noteModal').modal('show');
@@ -202,7 +202,7 @@
 
             // For opening the credentials modal
             function showCredentialModal(credentialId, url, username, password) {
-                $('#credential-id').val(credentialId ? credentialId : '');
+                $('#credential-id').val(credentialId ? credentialId : '0');
                 $('#credential-url').val(url ? url : '');
                 $('#credential-username').val(username ? username : '');
                 $('#credential-password').val(password ? password : '');

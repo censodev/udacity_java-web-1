@@ -7,7 +7,11 @@ import java.util.List;
 public interface NoteService {
     List<Note> findByUserId(int userId);
 
-    void save(Note note);
+    Note findById(int id);
+
+    void insert(Note note);
 
     void delete(int id);
+
+    void update(Note note);
 }

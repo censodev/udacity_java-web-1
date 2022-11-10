@@ -95,8 +95,12 @@ public class WebController {
     @PostMapping("note")
     public String saveNote(@ModelAttribute Note note, Authentication auth, Model model) {
         try {
-            note.setUserid(getUserId(auth));
-            noteService.save(note);
+            if (note.getNoteid() == 0) {
+                note.setUserid(getUserId(auth));
+                noteService.insert(note);
+            } else {
+                noteService.update(note);
+            }
         } catch (Exception e) {
             model.addAttribute("err", e.getMessage());
         }

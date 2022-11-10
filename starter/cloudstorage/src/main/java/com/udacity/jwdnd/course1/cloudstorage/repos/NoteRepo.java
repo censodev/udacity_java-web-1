@@ -19,4 +19,10 @@ public interface NoteRepo {
 
     @Delete("delete from NOTES where noteid = #{id}")
     void delete(@Param("id") int id);
+
+    @Insert("update NOTES set notetitle = #{notetitle}, notedescription = #{notedescription} where noteid = #{noteid}")
+    void update(Note note);
+
+    @Select("select * from NOTES where noteid = #{id}")
+    Note findById(@Param("id") int id);
 }
