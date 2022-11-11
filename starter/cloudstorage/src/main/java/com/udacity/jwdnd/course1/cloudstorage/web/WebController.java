@@ -152,6 +152,12 @@ public class WebController {
         return "result";
     }
 
+    @GetMapping("credential/delete/{id}")
+    public String deleteCredential(@PathVariable int id) {
+        credentialService.delete(id);
+        return "redirect:/home";
+    }
+
     private int getUserId(Authentication auth) {
         return ((User) auth.getPrincipal()).getUserid();
     }
