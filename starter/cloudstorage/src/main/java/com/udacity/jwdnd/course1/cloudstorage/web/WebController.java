@@ -5,9 +5,11 @@ import com.udacity.jwdnd.course1.cloudstorage.models.File;
 import com.udacity.jwdnd.course1.cloudstorage.models.Note;
 import com.udacity.jwdnd.course1.cloudstorage.models.User;
 import com.udacity.jwdnd.course1.cloudstorage.services.CredentialService;
+import com.udacity.jwdnd.course1.cloudstorage.services.EncryptionService;
 import com.udacity.jwdnd.course1.cloudstorage.services.FileService;
 import com.udacity.jwdnd.course1.cloudstorage.services.NoteService;
 import com.udacity.jwdnd.course1.cloudstorage.services.UserService;
+import org.springframework.beans.BeanUtils;
 import org.springframework.core.io.Resource;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.stream.Collectors;
 
 @Controller
 public class WebController {
@@ -28,12 +31,18 @@ public class WebController {
     private final FileService fileService;
     private final NoteService noteService;
     private final CredentialService credentialService;
+    private final EncryptionService encryptionService;
 
-    public WebController(UserService userService, FileService fileService, NoteService noteService, CredentialService credentialService) {
+    public WebController(UserService userService,
+                         FileService fileService,
+                         NoteService noteService,
+                         CredentialService credentialService,
+                         EncryptionService encryptionService) {
         this.userService = userService;
         this.fileService = fileService;
         this.noteService = noteService;
         this.credentialService = credentialService;
+        this.encryptionService = encryptionService;
     }
 
     @GetMapping("")
@@ -68,10 +77,19 @@ public class WebController {
         var files = fileService.findByUserId(userId);
         var notes = noteService.findByUserId(userId);
         var creds = credentialService.findByUserId(userId);
+        var decryptedPwd = creds.stream()
+                .map(cred -> {
+                    var clonedOne = new Credential();
+                    BeanUtils.copyProperties(cred, clonedOne);
+                    clonedOne.setPassword(encryptionService.decrypt(cred.getPassword()));
+                    return clonedOne;
+                })
+                .collect(Collectors.toMap(Credential::getCredentialid, Credential::getPassword));
 
         model.addAttribute("files", files);
         model.addAttribute("notes", notes);
         model.addAttribute("creds", creds);
+        model.addAttribute("decryptedPwd", decryptedPwd);
         return "home";
     }
 
