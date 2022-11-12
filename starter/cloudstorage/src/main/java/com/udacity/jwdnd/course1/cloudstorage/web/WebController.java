@@ -64,7 +64,7 @@ public class WebController {
     public String signup(@ModelAttribute User form) {
         try {
             userService.signup(form);
-            return "redirect:/signup?success";
+            return "redirect:/login?signupSuccess";
         } catch (Exception e) {
             e.printStackTrace();
             return "redirect:/signup?fail";
