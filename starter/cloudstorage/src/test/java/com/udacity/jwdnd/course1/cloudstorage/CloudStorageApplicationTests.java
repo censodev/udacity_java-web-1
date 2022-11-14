@@ -21,8 +21,7 @@ import org.springframework.boot.web.server.LocalServerPort;
 
 import java.io.File;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.time.Instant;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -248,11 +247,12 @@ class CloudStorageApplicationTests {
 
     @ParameterizedTest
     @MethodSource("provideNoteTestData")
-    void testCreatesNote_DisplayedOnHome(String usn, String title, String desc) {
+    void testNoteCRUD(String usn, String pwd, String title, String desc) {
         var wait = new WebDriverWait(driver, 20);
-        doMockSignUp("Large File", "Test", usn, "123");
-        doLogIn(usn, "123");
+        doMockSignUp("Large File", "Test", usn, pwd);
+        doLogIn(usn, pwd);
 
+        // create
         driver.findElement(By.id("nav-notes-tab")).click();
         wait.until(elementToBeClickable(By.cssSelector("#nav-notes button"))).click();
         wait.until(visibilityOfElementLocated(By.name("notetitle"))).sendKeys(title);
@@ -264,16 +264,45 @@ class CloudStorageApplicationTests {
                 .findElements(By.cssSelector("td,th"));
         assertEquals(cols.get(1).getText(), title);
         assertEquals(cols.get(2).getText(), desc.replace("\n", " "));
+
+        // update
+        var newTitle = title + "test";
+        var newDesc = desc + "test";
+        driver.findElement(By.id("nav-notes-tab")).click();
+        wait.until(visibilityOfElementLocated(By.cssSelector("#noteTable tbody tr")))
+                .findElement(By.cssSelector("td button"))
+                .click();
+        wait.until(visibilityOfElementLocated(By.name("notetitle"))).clear();
+        driver.findElement(By.name("notetitle")).sendKeys(newTitle);
+        driver.findElement(By.name("notedescription")).clear();
+        driver.findElement(By.name("notedescription")).sendKeys(newDesc);
+        driver.findElement(By.cssSelector("#noteModal .btn-primary")).click();
+        driver.findElement(By.tagName("a")).click();
+        wait.until(visibilityOfElementLocated(By.id("nav-notes-tab"))).click();
+        cols = wait.until(visibilityOfElementLocated(By.cssSelector("#noteTable tbody tr")))
+                .findElements(By.cssSelector("td,th"));
+        assertEquals(cols.get(1).getText(), newTitle);
+        assertEquals(cols.get(2).getText(), newDesc.replace("\n", " "));
+
+        // delete
+        driver.findElement(By.id("nav-notes-tab")).click();
+        wait.until(visibilityOfElementLocated(By.cssSelector("#noteTable tbody tr")))
+                .findElement(By.cssSelector("td a"))
+                .click();
+        wait.until(visibilityOfElementLocated(By.id("nav-notes-tab"))).click();
+        var rows = wait.until(visibilityOfElementLocated(By.cssSelector("#noteTable")))
+                .findElements(By.cssSelector("tbody tr"));
+        assertTrue(rows.isEmpty());
     }
 
     private static Stream<Arguments> provideNoteTestData() throws NoSuchAlgorithmException {
         return Stream.of(
-                Arguments.of(genUsn("CNDOH"), "test", "test"),
-                Arguments.of(genUsn("CNDOH"), "test1", "abc\ndef\nghj")
+                Arguments.of(genUsn("NOTE_CRUD"), "123", "test", "test"),
+                Arguments.of(genUsn("NOTE_CRUD"), "123", "test1", "abc\ndef\nghj")
         );
     }
 
     private static String genUsn(String testId) throws NoSuchAlgorithmException {
-        return testId + SecureRandom.getInstanceStrong().nextInt(10) + Instant.now().toEpochMilli();
+        return testId + UUID.randomUUID();
     }
 }
