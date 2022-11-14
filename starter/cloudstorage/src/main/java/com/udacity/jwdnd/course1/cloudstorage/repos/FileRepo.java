@@ -17,6 +17,9 @@ public interface FileRepo {
     @Select("select * from FILES where fileId = #{id}")
     File findById(@Param("id") int id);
 
+    @Select("select * from FILES where filename = #{filename}")
+    File findByFilename(@Param("filename") String filename);
+
     @Insert("insert into FILES(filename, contenttype, filesize, userid) values (#{filename}, #{contenttype}, #{filesize}, #{userid})")
     void insert(File file);
 

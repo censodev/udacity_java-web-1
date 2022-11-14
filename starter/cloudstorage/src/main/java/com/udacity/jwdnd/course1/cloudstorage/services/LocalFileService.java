@@ -38,11 +38,12 @@ public class LocalFileService extends CoreFileService {
 
     @Override
     public void save(InputStream is, File metadata) {
-        var filename = generateFileName(Objects.requireNonNull(metadata.getFilename()));
-        metadata.setFilename(filename);
+        if (fileRepo.findByFilename(metadata.getFilename()) != null) {
+            throw new RuntimeException("Filename already exists");
+        }
         try {
             saveMetadata(metadata);
-            Files.copy(is, ROOT_PATH.resolve(filename), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(is, ROOT_PATH.resolve(metadata.getFilename()), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

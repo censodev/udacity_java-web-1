@@ -11,6 +11,9 @@ import com.udacity.jwdnd.course1.cloudstorage.services.NoteService;
 import com.udacity.jwdnd.course1.cloudstorage.services.UserService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -22,7 +25,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.stream.Collectors;
 
 @Controller
@@ -94,26 +96,34 @@ public class WebController {
     }
 
     @PostMapping("file/upload")
-    public String uploadFile(@RequestParam MultipartFile fileUpload, Authentication auth) throws IOException {
+    public String uploadFile(@RequestParam MultipartFile fileUpload, Authentication auth, Model model) {
         var metadata = new File();
         metadata.setFilename(fileUpload.getOriginalFilename());
         metadata.setContenttype(fileUpload.getContentType());
         metadata.setFilesize(String.valueOf(fileUpload.getSize()));
         metadata.setUserid(getUserId(auth));
-        fileService.save(fileUpload.getInputStream(), metadata);
-        return "redirect:/home";
+        try {
+            fileService.save(fileUpload.getInputStream(), metadata);
+        } catch (Exception e) {
+            model.addAttribute("err", e.getMessage());
+        }
+        return "result";
     }
 
     @GetMapping("file/view/{id}")
     @ResponseBody
-    public Resource viewFile(@PathVariable int id) {
-        return fileService.load(id);
+    public ResponseEntity<Resource> viewFile(@PathVariable int id) {
+        var resource = fileService.load(id);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + resource.getFilename())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(resource);
     }
 
     @GetMapping("file/delete/{id}")
     public String deleteFile(@PathVariable int id) {
         fileService.delete(id);
-        return "redirect:/home";
+        return "result";
     }
 
     @PostMapping("note")
