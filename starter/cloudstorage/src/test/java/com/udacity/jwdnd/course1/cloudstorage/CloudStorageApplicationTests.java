@@ -1,5 +1,6 @@
 package com.udacity.jwdnd.course1.cloudstorage;
 
+import com.udacity.jwdnd.course1.cloudstorage.services.EncryptionService;
 import io.github.bonigarcia.wdm.WebDriverManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -16,11 +17,11 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.server.LocalServerPort;
 
 import java.io.File;
-import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -34,6 +35,9 @@ class CloudStorageApplicationTests {
 
     @LocalServerPort
     private int port;
+
+    @Autowired
+    private EncryptionService encryptionService;
 
     private WebDriver driver;
 
@@ -295,14 +299,76 @@ class CloudStorageApplicationTests {
         assertTrue(rows.isEmpty());
     }
 
-    private static Stream<Arguments> provideNoteTestData() throws NoSuchAlgorithmException {
+    @ParameterizedTest
+    @MethodSource("provideCredentialTestData")
+    void testCredentialCRUD(String usn, String pwd, String url, String credUsn, String credPwd) {
+        var wait = new WebDriverWait(driver, 20);
+        doMockSignUp("Large File", "Test", usn, pwd);
+        doLogIn(usn, pwd);
+
+        // create
+        driver.findElement(By.id("nav-credentials-tab")).click();
+        wait.until(elementToBeClickable(By.cssSelector("#nav-credentials button"))).click();
+        wait.until(visibilityOfElementLocated(By.name("url"))).sendKeys(url);
+        driver.findElement(By.name("username")).sendKeys(credUsn);
+        driver.findElement(By.name("password")).sendKeys(credPwd);
+        driver.findElement(By.cssSelector("#credentialModal .btn-primary")).click();
+        driver.findElement(By.tagName("a")).click();
+        wait.until(visibilityOfElementLocated(By.id("nav-credentials-tab"))).click();
+        var cols = wait.until(visibilityOfElementLocated(By.cssSelector("#credentialTable tbody tr")))
+                .findElements(By.cssSelector("td,th"));
+        assertEquals(cols.get(1).getText(), url);
+        assertEquals(cols.get(2).getText(), credUsn);
+        assertEquals(credPwd, encryptionService.decrypt(cols.get(3).getText()));
+
+        // update
+        var newUrl = url + "test";
+        var newCredUsn = credUsn + "test";
+        var newCredPwd = credPwd + "test";
+        driver.findElement(By.id("nav-credentials-tab")).click();
+        wait.until(visibilityOfElementLocated(By.cssSelector("#credentialTable tbody tr")))
+                .findElement(By.cssSelector("td button"))
+                .click();
+        wait.until(visibilityOfElementLocated(By.name("url"))).clear();
+        driver.findElement(By.name("url")).sendKeys(newUrl);
+        driver.findElement(By.name("username")).clear();
+        driver.findElement(By.name("username")).sendKeys(newCredUsn);
+        driver.findElement(By.name("password")).clear();
+        driver.findElement(By.name("password")).sendKeys(newCredPwd);
+        driver.findElement(By.cssSelector("#credentialModal .btn-primary")).click();
+        driver.findElement(By.tagName("a")).click();
+        wait.until(visibilityOfElementLocated(By.id("nav-credentials-tab"))).click();
+        cols = wait.until(visibilityOfElementLocated(By.cssSelector("#credentialTable tbody tr")))
+                .findElements(By.cssSelector("td,th"));
+        assertEquals(cols.get(1).getText(), newUrl);
+        assertEquals(cols.get(2).getText(), newCredUsn);
+        assertEquals(newCredPwd, encryptionService.decrypt(cols.get(3).getText()));
+
+        // delete
+        driver.findElement(By.id("nav-credentials-tab")).click();
+        wait.until(visibilityOfElementLocated(By.cssSelector("#credentialTable tbody tr")))
+                .findElement(By.cssSelector("td a"))
+                .click();
+        wait.until(visibilityOfElementLocated(By.id("nav-credentials-tab"))).click();
+        var rows = wait.until(visibilityOfElementLocated(By.cssSelector("#credentialTable")))
+                .findElements(By.cssSelector("tbody tr"));
+        assertTrue(rows.isEmpty());
+    }
+
+    private static Stream<Arguments> provideNoteTestData() {
         return Stream.of(
                 Arguments.of(genUsn("NOTE_CRUD"), "123", "test", "test"),
                 Arguments.of(genUsn("NOTE_CRUD"), "123", "test1", "abc\ndef\nghj")
         );
     }
 
-    private static String genUsn(String testId) throws NoSuchAlgorithmException {
+    private static Stream<Arguments> provideCredentialTestData() {
+        return Stream.of(
+                Arguments.of(genUsn("CRED_CRUD"), "123", "http://localhost:8080", "test", "123")
+        );
+    }
+
+    private static String genUsn(String testId) {
         return testId + UUID.randomUUID();
     }
 }
